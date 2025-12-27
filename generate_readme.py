@@ -1,5 +1,6 @@
-import subprocess
+import requests
 import sys
+import json
 
 project_name = sys.argv[1] if len(sys.argv) > 1 else "My Project"
 
@@ -13,13 +14,31 @@ Include the following sections:
 - Requirements
 """
 
-result = subprocess.run(
-    ["ollama", "run", "llama3", prompt],
-    capture_output=True,
-    text=True
-)
+url = "http://localhost:11434/api/generate"
+
+payload = {
+    "model": "mistral",
+    "prompt": prompt,
+    "stream": True
+}
+
+print("Generating README using Ollama...\n")
+
+response = requests.post(url, json=payload, stream=True)
+
+output = []
+
+for line in response.iter_lines():
+    if line:
+        data = json.loads(line.decode("utf-8"))
+        token = data.get("response", "")
+        output.append(token)
+        print(token, end="", flush=True)
+
+readme_text = "".join(output)
 
 with open("README.md", "w") as f:
-    f.write(result.stdout)
+    f.write(readme_text)
 
-print("README.md generated successfully.")
+print("\n\nREADME.md generated successfully.")
+
